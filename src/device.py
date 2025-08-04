@@ -67,8 +67,8 @@ class Device(QObject):
         self.direction_C2 = 1
         self.position_process_variable_C1 = 0
         self.position_process_variable_C2 = 0
-        self.speed_C1 = 3
-        self.speed_C2 = 3
+        self.speed_C1 = 100  # Default speed in RPM
+        self.speed_C2 = 100  # Default speed in RPM
         self.feedback_setpoint_C1 = 0
         self.feedback_setpoint_C2 = 0
         self.feedback_process_variable_C1 = 0
@@ -391,7 +391,8 @@ class Device(QObject):
 
     def set_speed_limit(self):
         """Set speed limit for motors."""
-        self.speed_limit = (self.CPR*self.max_rpm)/(60*self.counts_per_unit_C2)
+        # Since we're now working directly in RPM, speed limit is simply max_rpm
+        self.speed_limit = self.max_rpm
         log.info("Speed limit set on {device} for {rpm} RPM.".format(device=self.name, rpm=self.max_rpm))
 
     @Slot(bool)
@@ -775,19 +776,23 @@ class Device(QObject):
     def set_speed_C1(self, speed=0.0):
         """Set speed on control channel C1."""
         self.handle = ljm.open(7, self.connection, self.id)     
-        target_frequency = int(speed*self.counts_per_unit_C1)
+        # Convert RPM to frequency: frequency = (RPM * CPR) / 60
+        target_frequency = int((speed * self.CPR) / 60)
         self.freqC1, self.rollC1, self.width_C1 = self.set_clock(1, target_frequency)
-        self.speed_C1 = self.freqC1/self.counts_per_unit_C1
-        log.info("Speed on control channel C1 set to {speed}.".format(speed=speed))
+        # Convert back to RPM for storage: RPM = (frequency * 60) / CPR
+        self.speed_C1 = (self.freqC1 * 60) / self.CPR
+        log.info("Speed on control channel C1 set to {speed} RPM.".format(speed=speed))
 
     @Slot(float)
     def set_speed_C2(self, speed=0.0):
         """Set speed on control channel C2."""
         self.handle = ljm.open(7, self.connection, self.id) 
-        target_frequency = int(speed*self.counts_per_unit_C2)
+        # Convert RPM to frequency: frequency = (RPM * CPR) / 60
+        target_frequency = int((speed * self.CPR) / 60)
         self.freqC2, self.rollC2, self.width_C2 = self.set_clock(2, target_frequency)
-        self.speed_C2 = self.freqC2/self.counts_per_unit_C2
-        log.info("Speed on control channel C2 set to {speed}.".format(speed=speed))
+        # Convert back to RPM for storage: RPM = (frequency * 60) / CPR
+        self.speed_C2 = (self.freqC2 * 60) / self.CPR
+        log.info("Speed on control channel C2 set to {speed} RPM.".format(speed=speed))
 
     def reset_pulse_counter_C1(self):
         """Reste C1 pulse counter."""
