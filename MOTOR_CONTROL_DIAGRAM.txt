@@ -1,0 +1,61 @@
+```
+CamLab Motor Control System - RPM Implementation
+===============================================
+
+USER INTERFACE                    SIGNAL PROCESSING                HARDWARE CONTROL
+                                                                   
+┌─────────────────┐               ┌─────────────────┐              ┌─────────────────┐
+│   Speed (RPM)   │               │  LinearAxis.py  │              │   device.py     │
+│  ┌───────────┐  │    setText    │                 │ connects to  │                 │
+│  │    100    │  │◄──────────────┤ secondarySetPt  │────────────► │ set_speed_C1()  │
+│  └───────────┘  │               │   Changed       │              │                 │
+└─────────────────┘               └─────────────────┘              └─────────────────┘
+                                                                             │
+┌─────────────────┐               ┌─────────────────┐                       ▼
+│  Plus Button    │    pressed    │  LinearAxis.py  │              ┌─────────────────┐
+│      ┌───┐      │──────────────►│                 │ connects to  │ RPM → Frequency │
+│      │ + │      │               │ positiveJog     │────────────► │ freq = (RPM×CPR)│
+│      └───┘      │    released   │   Enabled       │              │        ÷ 60     │
+└─────────────────┘◄──────────────┤ positiveJog     │              └─────────────────┘
+                                  │   Disabled      │                       │
+┌─────────────────┐               └─────────────────┘                       ▼
+│  Minus Button   │    pressed    ┌─────────────────┐              ┌─────────────────┐
+│      ┌───┐      │──────────────►│  LinearAxis.py  │              │  LabJack T7     │
+│      │ - │      │               │                 │ connects to  │                 │
+│      └───┘      │    released   │ negativeJog     │────────────► │ PWM Frequency   │
+└─────────────────┘◄──────────────┤   Enabled       │              │ Direction Pin   │
+                                  │ negativeJog     │              │ Enable Pin      │
+                                  │   Disabled      │              └─────────────────┘
+                                  └─────────────────┘                       │
+                                                                            ▼
+BUTTON PRESS SEQUENCE:                                            ┌─────────────────┐
+                                                                  │  Stepper Motor  │
+1. User sets RPM (e.g., 100)     ──► Speed stored in device      │                 │
+2. User presses + button         ──► positiveJogEnabled signal   │ Rotates at      │
+3. Motor starts spinning         ──► PWM starts at 10,667 Hz     │ 100 RPM         │
+4. User releases + button        ──► positiveJogDisabled signal  │                 │
+5. Motor stops                   ──► PWM stops                   └─────────────────┘
+
+CONVERSION EXAMPLES:
+┌──────────┬──────────────┬──────────────────┐
+│   RPM    │ Frequency Hz │   Application    │
+├──────────┼──────────────┼──────────────────┤
+│    50    │    5,333     │ Slow positioning │
+│   100    │   10,667     │ Normal operation │
+│   500    │   53,333     │ Fast positioning │
+│  1000    │  106,667     │ High speed       │
+│  4000    │  426,667     │ Maximum speed    │
+└──────────┴──────────────┴──────────────────┘
+
+SIGNAL CONNECTION MAP:
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                        _ControlUtilities.py                                    │
+│                                                                                 │
+│  controlWidget.positiveJogEnabled.connect(device.jog_positive_on_C1)           │
+│  controlWidget.positiveJogDisabled.connect(device.jog_positive_off_C1)         │
+│  controlWidget.negativeJogEnabled.connect(device.jog_negative_on_C1)           │
+│  controlWidget.negativeJogDisabled.connect(device.jog_negative_off_C1)         │
+│  controlWidget.secondarySetPointChanged.connect(device.set_speed_C1)           │
+│                                                                                 │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
